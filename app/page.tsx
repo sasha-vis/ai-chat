@@ -1,65 +1,135 @@
+"use client";
+
+import { ChatWindow } from "@/src/shared/ui";
+import { useState } from "react";
 import Image from "next/image";
 
 export default function Home() {
+  const [text, setText] = useState<string>("");
+  const [chatHistory, setChatHistory] = useState<
+    {
+      question: string;
+      answer: string | null;
+      isLoading?: boolean;
+    }[]
+  >([]);
+
+  const handleSendMessageToAi = async () => {
+    if (!text) return;
+
+    setChatHistory((prev) => [
+      ...prev,
+      {
+        question: text,
+        answer: null,
+        isLoading: true,
+      },
+    ]);
+
+    try {
+      const response = await fetch("/api/send-ai", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ text }),
+      });
+
+      const data = await response.json();
+
+      setChatHistory((prev) => {
+        const newHistory = [...prev];
+
+        const lastIndex = newHistory.findIndex((item) => item.isLoading);
+        if (lastIndex !== -1) {
+          newHistory[lastIndex] = {
+            question: text,
+            answer: data.message,
+            isLoading: false,
+          };
+        }
+        return newHistory;
+      });
+    } catch (error) {
+      setChatHistory((prev) => {
+        const newHistory = [...prev];
+        const lastIndex = newHistory.findIndex((item) => item.isLoading);
+        if (lastIndex !== -1) {
+          newHistory[lastIndex] = {
+            question: text,
+            answer: "Error while getting response",
+            isLoading: false,
+          };
+        }
+        return newHistory;
+      });
+    }
+
+    setText("");
+  };
+
+  const handleClearHistory = () => {
+    setChatHistory([]);
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="min-h-screen bg-black font-sans text-white">
+      <div className="max-w-4xl py-20 mx-auto text-white px-4">
+        <div className="flex items-center gap-2 sm:gap-4 justify-center mb-8">
+          <Image
+            src="/me.jpg"
+            alt=""
+            width={150}
+            height={100}
+            className="w-16 h-auto sm:w-24 md:w-32 lg:w-36 xl:w-[150px]"
+          />
+          <Image
+            src="/ai.png"
+            alt=""
+            width={120}
+            height={100}
+            className="w-12 h-auto sm:w-20 md:w-28 lg:w-32 xl:w-[120px]"
+          />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <div className="flex flex-col gap-4">
+          <textarea
+            onChange={(e) => setText(e.target.value)}
+            value={text}
+            className="border-white/50 outline-none text-xl p-4 resize-none w-full h-40 transition-all duration-300 focus:border-white border rounded-md"
+            placeholder="Write your question..."
+          />
+          <div className="flex gap-4 items-center w-full">
+            <button
+              disabled={!text}
+              onClick={handleSendMessageToAi}
+              className="border border-white/50 flex-1 cursor-pointer hover:border-white transition-all rounded-sm h-12 bg-black text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Send
+            </button>
+            <button
+              onClick={handleClearHistory}
+              className="border border-white/50 flex-1 cursor-pointer hover:border-white transition-all rounded-sm h-12 bg-black text-white"
+            >
+              Clear chat history
+            </button>
+          </div>
+          <h2 className="text-center font-semibold text-2xl">Chat history</h2>
+          {chatHistory.length ? (
+            chatHistory.map(({ question, answer, isLoading }, index) => (
+              <ChatWindow
+                key={index}
+                question={question}
+                answer={answer}
+                isLoading={isLoading}
+              />
+            ))
+          ) : (
+            <div className="text-center text-white/50">
+              Your chat history is empty. Please, write at least 1 question
+            </div>
+          )}
         </div>
-      </main>
+      </div>
     </div>
   );
 }
