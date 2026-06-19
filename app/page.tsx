@@ -75,14 +75,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-black font-sans text-white">
       <div className="max-w-4xl py-20 mx-auto text-white px-4">
-        <div className="flex items-center gap-2 sm:gap-4 justify-center mb-8">
-          <Image
-            src="/me.jpg"
-            alt=""
-            width={150}
-            height={100}
-            className="w-16 h-auto sm:w-24 md:w-32 lg:w-36 xl:w-[150px]"
-          />
+        <div className="flex items-center justify-center mb-8">
           <Image
             src="/ai.png"
             alt=""
